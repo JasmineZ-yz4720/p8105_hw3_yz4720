@@ -5,7 +5,39 @@ date: "2023-10-14"
 output: github_document
 ---
 
-```{r setup}
+```{r setup, include=FALSE}
 library(tidyverse)
+library(ggridges)
+library(patchwork)
+library(p8105.datasets)
+
+knitr::opts_chunk$set(
+	echo = TRUE,
+	warning = FALSE,
+	fig.width = 8, 
+  fig.height = 6,
+  out.width = "90%"
+)
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+
+scale_colour_discrete = scale_colour_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+```
+
+# Problem 1
+```{r}
+data(instacart)
+```
+The `instacart` dataset contains `r nrow(instacart)` rows and `r ncol(instacart)` columns, and each row represents an item from an order. The variables include order id, product id, product name, number identifier of the item in the order, whether the item is a reorder, and user id. There is also information on the day and time of the order, and number of days since prior order, location of the aisle and department with their corresponding id. In total, there are `r instacart |> select(product_id) |> distinct() |> count()` products found in `r instacart |> select(user_id, order_id) |> distinct() |> count()` orders from `r instacart |> select(user_id) |> distinct() |> count()` distinct users.
+
+```{r}
+instacart |> 
+  count(aisle)
 ```
 
