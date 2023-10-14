@@ -11,32 +11,35 @@ library(ggridges)
 library(patchwork)
 library(p8105.datasets)
 
-
 theme_set(theme_minimal() + theme(legend.position = "bottom"))
-
 options(
   ggplot2.continuous.colour = "viridis",
   ggplot2.continuous.fill = "viridis"
 )
-
 scale_colour_discrete = scale_colour_viridis_d
 scale_fill_discrete = scale_fill_viridis_d
 ```
 
 # Problem 1
-```{r}
+## Dataset Description
+
+```{r Data load q1}
 data(instacart)
 ```
 The `instacart` dataset contains `r nrow(instacart)` rows and `r ncol(instacart)` columns, and each row represents an item from an order. The variables include order id, product id, product name, number identifier of the item in the order, whether the item is a reorder, and user id. There is also information on the day and time of the order, and number of days since prior order, location of the aisle and department with their corresponding id. In total, there are `r instacart |> select(product_id) |> distinct() |> count()` products found in `r instacart |> select(user_id, order_id) |> distinct() |> count()` orders from `r instacart |> select(user_id) |> distinct() |> count()` distinct users.
 
-```{r}
+## Aisle Overview
+
+```{r Aisle}
 instacart |> 
   count(aisle) |> 
   arrange(desc(n))
 ```
 There are 134 aisles in total. Most items are ordered from fresh vegetables and fresh fruits aisles.
 
-```{r}
+## Number of Items Ordered in Each Aisle
+
+```{r Aisle items plot}
 instacart |> 
   count(aisle) |> 
   filter(n>10000) |> 
@@ -48,7 +51,9 @@ instacart |>
   
 ```
 
-```{r}
+## 3 Most Popular Product in 3 Specific Aisles
+
+```{r Aisle product table}
 instacart |> 
   filter(aisle == c("baking ingredients", "dog food care", "packaged vegetables fruits")) |>
   group_by(aisle) |> 
@@ -59,8 +64,9 @@ instacart |>
   knitr::kable()
 ```
 
-Make a table showing the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week; format this table for human readers (i.e. produce a 2 x 7 table).
-```{r}
+## Purchase Hour by Weekdays
+
+```{r Purchase hour table}
 instacart |>
   filter(product_name %in% c("Pink Lady Apples", "Coffee Ice Cream")) |>
   group_by(product_name, order_dow) |>
@@ -72,21 +78,25 @@ instacart |>
 ```
 
 # Problem 2
-```{r}
+## Dataset Load and Tidy
+
+```{r Data load q2}
 data("brfss_smart2010")
 ```
 
-```{r}
+```{r Data tidying}
 brfss_df = brfss_smart2010 |> 
   janitor::clean_names() |> 
   filter(topic == "Overall Health") |> 
   mutate(response = as.factor(response)) |> 
   mutate(response = fct_recode(response, 
-                               "Poor" = "1", "Fair" = "2", "Good" = "3", "Very good" = "4", "Excellent" = "5"))
+                               "1" = "Poor", "2" = "Fair", "3" = "Good", "4" = "Very good", "5" = "Excellent"))
       
 ```
-In 2002, which states were observed at 7 or more locations? What about in 2010?
-```{r}
+
+## State Observation Year 2002 and 2010
+
+```{r State observation}
 brfss_df |> 
   filter(year == "2002") |> 
   group_by(locationabbr) |> 
@@ -100,10 +110,11 @@ brfss_df |>
 ```
 In the year 2002, CT, FL, MA, NC, NJ, and PA were observed at 7 or more locations. In 2010, CA, CO, FL, MA, MD, NC, NE, NJ, NY, and OH were observed at 7 or more locations. 
 
-Construct a dataset that is limited to Excellent responses, and contains, year, state, and a variable that averages the data_value across locations within a state. Make a “spaghetti” plot of this average value over time within a state (that is, make a plot showing a line for each state across years – the geom_line geometry and group aesthetic will help).
-```{r}
+## Plot: Year vs. Average Data Value (Excellent Response Only)
+
+```{r Excellent response plot}
 brfss_excellent = brfss_df |> 
-  filter(response == "Excellent") |> 
+  filter(response == "5") |> 
   select(year, locationabbr, data_value) |> 
   group_by(year, locationabbr) |> 
   summarize(avg_data_value = mean(data_value)) 
@@ -113,17 +124,91 @@ ggplot(brfss_excellent,
   geom_line()
 ```
 
-Make a two-panel plot showing, for the years 2006, and 2010, distribution of data_value for responses (“Poor” to “Excellent”) among locations in NY State.
+## Data Value Distribution for Responses in NY state 
 
-```{r}
+```{r Data value dist plot}
 brfss_df |> 
   filter(year == c("2006", "2010")) |> 
   filter(locationabbr == "NY") |> 
   ggplot(aes(x = response, y = data_value)) +
   geom_point() +
   facet_wrap(~year) +
-  labs(title = "Data Value Distribution for Responses at 2006 vs. 2010")
+  scale_x_discrete(limits = c("1","2","3", "4", "5")) +
+  labs(title = "Data Value Distribution in NY State for Responses at 2006 vs. 2010") +
+  labs(caption = "1 = Poor, 2 = Fair, 3 = Good, 4 = Very good, 5 = Excellent")
 ```
 
 
+# Question 3
+## Data Manipulation
 
+```{r Data Tidy}
+demo_data = read_csv("./Data/nhanes_covar.csv", skip = 4) |> 
+  janitor::clean_names() |> 
+  filter(age >= 21) |> 
+  drop_na() |> 
+  mutate(sex = as.factor(sex)) |> 
+  mutate(sex = fct_recode(sex, "male" = "1", "female" = "2")) |> 
+  mutate(education = as.factor(education)) |> 
+  mutate(education = fct_recode(education, "Less than high school" = "1", 
+                               "High school equivalent" = "2", "More than high school" = "3")) 
+accel_data = read_csv("./Data/nhanes_accel.csv") |> 
+  janitor::clean_names()
+
+accel_obs_df = left_join(demo_data, accel_data)
+```
+
+## Plot: Age Distribution by Education Level
+
+```{r age distribution}
+accel_obs_df |> 
+  group_by(sex) |> 
+  count(education) |> 
+  knitr::kable()
+accel_obs_df |> 
+  ggplot(aes(x = age)) + 
+  geom_density() +
+  facet_wrap(~sex+education) +
+  labs(title = "Age Distribution by Education among Male and Female") 
+```
+
+Among male, 27 have less than high school education, 35 have high school equivalent education, and 56 have more than high school education. Among female, 28 have less than high school education, 23 have high school equivalent education, and 59 have more than high school education. It is obvious that higher proportion of participants went to beyond high school. 
+
+From the age distribution plots by education level, we can see that younger participants (aged 21 - 40) tend to have higher education levels and went beyond high school. Mid-aged (aged 40 - 60) tend to have high school equivalent education. Older particpants (aged 60+) tend to have less than high school education.
+
+
+## Plot: Total Activity Distribution by Education Level
+
+```{r age and activity sum}
+accel_obs_df |> 
+  mutate(min_sum = rowSums(pick(6:1445))) |> 
+  ggplot(aes(x = age, y = min_sum)) +
+  geom_point() +
+  geom_smooth() +
+  facet_wrap(~sex+education) +
+  labs(title = "Total Activity by Education among Male and Female") 
+```
+
+Comparing across male and female, it seems like female tend to have higher total activity compared to male. For more educated participants, their total activity is more stable as they age compared to those who are less educated. In general, total activity decreases as age increases.
+
+
+## Plot: 24-Hour Activity by Education Level
+
+```{r hourly activity by sex}
+accel_obs_df |> 
+  pivot_longer(
+    min1:min1440,
+    names_to = "min",
+    names_prefix = "min",
+    values_to = "data_value"
+  ) |> 
+  mutate(min = as.numeric(min)) |> 
+  mutate(hour = floor((min-1)/60))|> 
+  ggplot(aes(x = hour, y = data_value, color = sex)) +
+  geom_point() +
+  geom_smooth() +
+  facet_wrap(~education)
+```
+
+
+Activity increases during the day from around hour 6 and reaches its maximum at around hour 9. Activity remains relatively stable until hour 20 and starts to decrease. The minimum activity is reached around hour 4. When comparing hourly activity among male and female, female tend to have slightly higher activity than male.
