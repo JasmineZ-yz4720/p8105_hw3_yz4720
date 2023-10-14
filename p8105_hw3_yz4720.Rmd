@@ -11,13 +11,6 @@ library(ggridges)
 library(patchwork)
 library(p8105.datasets)
 
-knitr::opts_chunk$set(
-	echo = TRUE,
-	warning = FALSE,
-	fig.width = 8, 
-  fig.height = 6,
-  out.width = "90%"
-)
 
 theme_set(theme_minimal() + theme(legend.position = "bottom"))
 
@@ -77,4 +70,60 @@ instacart |>
     values_from = mean_hour) |>
   knitr::kable(digits = 2)
 ```
+
+# Problem 2
+```{r}
+data("brfss_smart2010")
+```
+
+```{r}
+brfss_df = brfss_smart2010 |> 
+  janitor::clean_names() |> 
+  filter(topic == "Overall Health") |> 
+  mutate(response = as.factor(response)) |> 
+  mutate(response = fct_recode(response, 
+                               "Poor" = "1", "Fair" = "2", "Good" = "3", "Very good" = "4", "Excellent" = "5"))
+      
+```
+In 2002, which states were observed at 7 or more locations? What about in 2010?
+```{r}
+brfss_df |> 
+  filter(year == "2002") |> 
+  group_by(locationabbr) |> 
+  summarize(obs_times = n_distinct(locationdesc)) |> 
+  filter(obs_times >= 7)
+brfss_df |> 
+  filter(year == "2010") |> 
+  group_by(locationabbr) |> 
+  summarize(obs_times = n_distinct(locationdesc)) |> 
+  filter(obs_times >= 7)
+```
+In the year 2002, CT, FL, MA, NC, NJ, and PA were observed at 7 or more locations. In 2010, CA, CO, FL, MA, MD, NC, NE, NJ, NY, and OH were observed at 7 or more locations. 
+
+Construct a dataset that is limited to Excellent responses, and contains, year, state, and a variable that averages the data_value across locations within a state. Make a “spaghetti” plot of this average value over time within a state (that is, make a plot showing a line for each state across years – the geom_line geometry and group aesthetic will help).
+```{r}
+brfss_excellent = brfss_df |> 
+  filter(response == "Excellent") |> 
+  select(year, locationabbr, data_value) |> 
+  group_by(year, locationabbr) |> 
+  summarize(avg_data_value = mean(data_value)) 
+ggplot(brfss_excellent, 
+       aes(x = year, y = avg_data_value, 
+           group = locationabbr)) +
+  geom_line()
+```
+
+Make a two-panel plot showing, for the years 2006, and 2010, distribution of data_value for responses (“Poor” to “Excellent”) among locations in NY State.
+
+```{r}
+brfss_df |> 
+  filter(year == c("2006", "2010")) |> 
+  filter(locationabbr == "NY") |> 
+  ggplot(aes(x = response, y = data_value)) +
+  geom_point() +
+  facet_wrap(~year) +
+  labs(title = "Data Value Distribution for Responses at 2006 vs. 2010")
+```
+
+
 
